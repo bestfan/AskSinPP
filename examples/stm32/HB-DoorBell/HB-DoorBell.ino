@@ -3,6 +3,7 @@
 // 2017-03-20 papa Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 // ci-test=yes board=maplemini aes=no
 //- -----------------------------------------------------------------------------------------------------------------------
+#undef NDEBUG // NDEBUG is defined by default for STM32duino
 
 // define this to read the device id, serial and device type from bootloader section
 // #define USE_OTA_BOOTLOADER
@@ -12,9 +13,10 @@
 
 #include <SPI.h>    // when we include SPI.h - we can use LibSPI class
 #include <Wire.h>
-#include <EEPROM.h> // the EEPROM library contains Flash Access Methods
+//#include <EEPROM.h> // the EEPROM library contains Flash Access Methods
+#include <FlashStorage_STM32.h>
 #include <AskSinPP.h>
-#include <OneWireSTM.h>
+#include <OneWire.h>
 #include <sensors/Bme280.h>
 
 #include <Register.h>
@@ -64,7 +66,7 @@ const struct DeviceInfo PROGMEM devinfo = {
     {0x01,0x00}             // Info Bytes
 };
 
-/**
+/**PIN
  * Configure the used hardware
  */
 typedef LibSPI<PA4> RadioSPI;
@@ -86,7 +88,7 @@ class BellChannel : public RemoteChannel<Hal,PEERS_PER_CHANNEL,DoorList0> {
     LightOff () : Alarm(0) {}
     virtual ~LightOff () {}
     virtual void trigger (__attribute__((unused)) AlarmClock& clock) {
-      pwmWrite(BELL_LIGHT_PIN, 2048);
+      analogWrite(BELL_LIGHT_PIN, 2048); 
     }
   } loff;
 public:
@@ -95,14 +97,15 @@ public:
 
   void setup(Device<Hal,DoorList0>* dev,uint8_t number,uint16_t addr) {
     RemoteChannel<Hal,PEERS_PER_CHANNEL,DoorList0>::setup(dev, number, addr);
-    pinMode(BELL_LIGHT_PIN,PWM);
-    pwmWrite(BELL_LIGHT_PIN, 2048);
+    pinMode(BELL_LIGHT_PIN, OUTPUT);
+    analogWriteResolution(16);
+    analogWrite(BELL_LIGHT_PIN, 2048); 
   }
 
   virtual void state(uint8_t s) {
     RemoteChannel<Hal,PEERS_PER_CHANNEL,DoorList0>::state(s);
     if( s == Button::pressed || s == Button::longpressed ) {
-      pwmWrite(BELL_LIGHT_PIN, 65535);
+      analogWrite(BELL_LIGHT_PIN, 65535);
       sysclock.cancel(loff);
       loff.set(seconds2ticks(device().getList0().backOnTime()));
       sysclock.add(loff);
