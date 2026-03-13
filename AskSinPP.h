@@ -35,7 +35,7 @@
   #define enableInterrupt(pin,handler,mode) attachInterrupt(pin,handler,mode)
   typedef unsigned long WiringPinMode;
   typedef uint8_t uint8;
-#elif ARDUINO_ARCH_STM32F1
+#elif defined ARDUINO_ARCH_STM32F1
   #define _delay_us(us) delayMicroseconds(us)
   inline void _delay_ms(uint32_t ms) { do { delayMicroseconds(1000); } while( (--ms) > 0); }
 
