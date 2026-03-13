@@ -3,6 +3,7 @@
 // 2017-03-20 papa Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 // ci-test=yes board=maplemini aes=no
 //- -----------------------------------------------------------------------------------------------------------------------
+#undef NDEBUG // NDEBUG is defined by default for STM32duino
 
 // define this to read the device id, serial and device type from bootloader section
 // #define USE_OTA_BOOTLOADER
@@ -90,7 +91,10 @@ void setup () {
   bool first = sdev.init(hal);
   // this will also trigger powerUpAction handling
   bool low = sdev.getConfigByte(CFG_LOWACTIVE_BYTE);
-  DPRINT("Invert ");low ? DPRINTLN("active") : DPRINTLN("disabled");
+#if !defined NDEBUG
+  DPRINT("Invert ");
+  low ? DPRINTLN("active") : DPRINTLN("disabled");
+#endif
   sdev.channel(1).init(RELAY1_PIN,low);
   sdev.channel(2).init(RELAY2_PIN,low);
   sdev.channel(3).init(RELAY3_PIN,low);
@@ -107,4 +111,3 @@ void loop() {
 //    hal.activity.savePower<Idle>(hal);
   }
 }
-
