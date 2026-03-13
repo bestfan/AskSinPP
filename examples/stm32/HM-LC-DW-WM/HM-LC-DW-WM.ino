@@ -3,6 +3,7 @@
 // 2018-08-09 papa Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 // ci-test=yes board=bluepill aes=no
 //- -----------------------------------------------------------------------------------------------------------------------
+#undef NDEBUG // NDEBUG is defined by default for STM32duino
 
 // define this to read the device id, serial and device type from bootloader section
 // #define USE_OTA_BOOTLOADER
@@ -16,7 +17,7 @@
 #include <SPI.h>    // when we include SPI.h - we can use LibSPI class
 #include <Wire.h>
 #include <EEPROM.h> // the EEPROM library contains Flash Access Methods
-#include <OneWireSTM.h>
+#include <OneWire.h>
 #include <AskSinPP.h>
 
 #include <Dimmer.h>
@@ -147,4 +148,3 @@ void loop () {
 //    hal.activity.savePower<Idle<true> >(hal);
   }
 }
-
