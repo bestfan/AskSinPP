@@ -25,6 +25,7 @@
 
   #define DINIT(baudrate,msg)
   #define DDEVINFO(dev)
+  #define DFLUSH
 
 #else
 
@@ -79,6 +80,9 @@
     serial[10]=0; \
     DPRINT(F("  Serial: "));DPRINTLN((char*)serial);
 
+  #define DFLUSH \
+    DSERIAL.flush();
+    
 #else
 
   #include <iostream>
