@@ -25,7 +25,7 @@
   #if defined(__AVR_ATmega644__) || defined(__AVR_ATmega644P__) || defined(__AVR_ATmega644PA__) || defined(__AVR_ATmega1284__) || defined(__AVR_ATmega1284P__) || defined(__AVR_ATmega328PB__)
     #include <avr/boot.h>
 #elif defined (ARDUINO_ARCH_STM32F1)
-#elif defined (ARDUINO_ARCH_STM32) && defined (STM32L1xx)
+#elif defined (ARDUINO_ARCH_STM32)
 #elif defined (ARDUINO_ARCH_ESP32)
 #elif defined (ARDUINO_ARCH_RP2040)
 #elif defined (ARDUINO_ARCH_EFM32)
@@ -98,6 +98,9 @@ private:
   HalType* hal;
   List0Type&   list0;
   uint8_t  msgcount;
+
+  HMID    lastdev;
+  uint8_t lastmsg;
 
 #ifdef USE_HW_SERIAL
    uint8_t device_id[3];
@@ -188,11 +191,22 @@ public:
       device_id[0] = (uint8_t)(crc & 0x000000ff);
       device_id[1] = (uint8_t)(crc >> 8 & 0x000000ff);
       device_id[2] = (uint8_t)(crc >> 16 & 0x000000ff);
-  #elif defined (ARDUINO_ARCH_STM32) && (defined STM32L1xx)
-      uint32_t crc = AskSinBase::crc24((uint8_t*)0x1FF80050, 12);
+  #elif defined ARDUINO_ARCH_STM32 
+    #if defined UID_BASE
+      DHEXLN(UID_BASE);
+      uint32_t uid_tmp[3];
+      uid_tmp[0] = *(uint32_t*)(UID_BASE);
+      uid_tmp[1] = *(uint32_t*)(UID_BASE + 4);
+      uid_tmp[2] = *(uint32_t*)(UID_BASE + 8);      // explicitly reading as 32 bid word (prevents BusFault)
+      
+      // calculation of CRC with local buffer
+      uint32_t crc = AskSinBase::crc24((uint8_t*)uid_tmp, 12);
       device_id[0] = (uint8_t)(crc & 0x000000ff);
       device_id[1] = (uint8_t)(crc >> 8 & 0x000000ff);
       device_id[2] = (uint8_t)(crc >> 16 & 0x000000ff);
+    #else
+      #error: no Address for Serial Number defined
+    #endif
   #elif defined (ARDUINO_ARCH_EFM32) || defined (ARDUINO_ARCH_ESP32) || defined (ARDUINO_ARCH_RP2040)
       #if defined (ARDUINO_ARCH_EFM32)
         uint64_t chipId = SYSTEM_GetUnique();
@@ -225,7 +239,8 @@ public:
 #ifdef USE_OTA_BOOTLOADER
     HalType::pgm_read((uint8_t*)serial,OTA_SERIAL_START,10);
 #elif defined (USE_HW_SERIAL)
-  #if defined (ARDUINO_ARCH_STM32F1) || defined (ARDUINO_ARCH_EFM32) || defined (ARDUINO_ARCH_ESP32) || defined (ARDUINO_ARCH_RP2040) || (defined (ARDUINO_ARCH_STM32) && (defined STM32L1xx))
+//  #if defined (ARDUINO_ARCH_STM32F1) || defined (ARDUINO_ARCH_EFM32) || defined (ARDUINO_ARCH_ESP32) || defined (ARDUINO_ARCH_RP2040) || (defined (ARDUINO_ARCH_STM32) && (defined STM32L1xx))
+  #if defined (ARDUINO_ARCH_STM32F1) || defined (ARDUINO_ARCH_EFM32) || defined (ARDUINO_ARCH_ESP32) || defined (ARDUINO_ARCH_RP2040) || defined (ARDUINO_ARCH_STM32)
     memcpy_P(serial,info.Serial,4);
     uint8_t* s = serial+4;
     for( int i=0; i<3; ++i ) {
