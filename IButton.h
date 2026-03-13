@@ -160,11 +160,11 @@ public:
 };
 
 
-template <class IButtonDev,class IButtonChannel,int READER_PIN,int LED_GREEN,int LED_RED>
+template <class IButtonDev,class IButtonChannel,int READER_PIN,int LOC_LED_GREEN,int LOC_LED_RED>
 class IButtonScanner : public Alarm {
   OneWire   ow;
   IButtonDev& dev;
-  DualStatusLed<LED_GREEN,LED_RED> led;
+  DualStatusLed<LOC_LED_GREEN,LOC_LED_RED> led;
   uint8_t cnt;
 public:
   IButtonScanner (IButtonDev& d) : Alarm(millis2ticks(500)), ow(READER_PIN), dev(d), cnt(0) {
