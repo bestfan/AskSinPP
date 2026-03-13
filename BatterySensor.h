@@ -97,6 +97,67 @@ public:
     adc_reg_map *regs = ADC1->regs;
     regs->CR2 |= ADC_CR2_TSVREFE;    // enable VREFINT and temp sensor
     regs->SMPR1 =  ADC_SMPR1_SMP17;  // sample rate for VREFINT ADC channel
+#elif ARDUINO_ARCH_STM32
+    /*
+     * Minimum ADC sampling time is required when reading
+     * internal channels so set it to max possible value.
+     * It can be defined more precisely by defining:
+     * ADC_SAMPLINGTIME_INTERNAL
+     * to the desired ADC sample time.
+     */
+    #ifndef ADC_SAMPLINGTIME_INTERNAL
+      #if defined(ADC_SAMPLETIME_480CYCLES)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_480CYCLES
+      #elif defined(ADC_SAMPLETIME_384CYCLES)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_384CYCLES
+      #elif defined(ADC_SAMPLETIME_810CYCLES_5)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_810CYCLES_5
+      #elif defined(ADC_SAMPLETIME_814CYCLES)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_814CYCLES
+      #elif defined(ADC_SAMPLETIME_640CYCLES_5)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_640CYCLES_5
+      #elif defined(ADC_SAMPLETIME_601CYCLES_5)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_601CYCLES_5
+      #elif defined(ADC_SAMPLETIME_247CYCLES_5)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_247CYCLES_5
+      #elif defined(ADC_SAMPLETIME_239CYCLES_5)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_239CYCLES_5
+      #elif defined(ADC_SAMPLETIME_160CYCLES_5)
+        #define ADC_SAMPLINGTIME_INTERNAL ADC_SAMPLETIME_160CYCLES_5
+      #else
+        #error "ADC sampling time could not be defined for internal channels!"
+      #endif
+    #endif /* !ADC_SAMPLINGTIME_INTERNAL */
+    
+    
+    ADC_HandleTypeDef hadc1 = {0};
+    hadc1.Instance = ADC1;
+
+    #ifdef ADC_CCR_VREFEN
+        ADC->CCR |= ADC_CCR_VREFEN;
+    #elif defined(ADC_CCR_TSVREFE)
+        ADC->CCR |= ADC_CCR_TSVREFE;
+    #elif defined(ADC_COMMON)
+        ADC_COMMON->CCR |= ADC_COMMON_VREFEN;
+    #endif
+
+    ADC_ChannelConfTypeDef sConfig = {0};
+    
+    sConfig.Channel = ADC_CHANNEL_VREFINT; 
+    sConfig.Rank = 1;
+    
+    sConfig.SamplingTime = ADC_SAMPLINGTIME_INTERNAL;
+
+    // Offset is not available for all Serien in the structur
+    #if defined(ADC_CHSELR_SQ1) || defined(STM32F1xx) || defined(STM32L1xx)
+        // nothing to do
+    #else
+        sConfig.Offset = 0;
+    #endif
+
+    if (HAL_ADC_ConfigChannel(&hadc1, &sConfig) != HAL_OK) {
+        // error handling if necessary
+    }
 #endif
 #ifdef ARDUINO_ARCH_EFM32
     CMU_ClockEnable(cmuClock_ADC0, true);
@@ -119,9 +180,10 @@ public:
     vcc = 1100UL * 1024 / ADC;
 #elif defined ARDUINO_ARCH_STM32F1
     vcc = 1200 * 4096 / adc_read(ADC1, 17);  // ADC sample to millivolts
-#elif defined ARDUINO_ARCH_STM32 && defined STM32L1xx
+#elif defined ARDUINO_ARCH_STM32
     analogReadResolution(12);
-    vcc = 1216 * 4096 / analogRead(AVREF);
+    // Berechnung in Millivolt
+    vcc = 1210UL * 4095UL / analogRead(AVREF);
 #elif defined ARDUINO_ARCH_EFM32
     ADC_Init_TypeDef       init       = ADC_INIT_DEFAULT;
     ADC_InitSingle_TypeDef singleInit = ADC_INITSINGLE_DEFAULT;
