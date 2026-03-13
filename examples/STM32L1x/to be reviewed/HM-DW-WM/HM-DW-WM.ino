@@ -3,13 +3,15 @@
 // 2016-10-31 papa Creative Commons - http://creativecommons.org/licenses/by-nc-sa/3.0/de/
 // HM-LC-DW-WM modified for the STM32L1xx CPU by trilu & stan23
 //- -----------------------------------------------------------------------------------------------------------------------
+#undef NDEBUG // NDEBUG is defined by default for STM32duino
 
 #define HIDE_IGNORE_MSG
 
 // as we have no defined HW in STM32duino yet, we are working on base of the default STM32L152CB board
 // which has a different pin map. deviances are handled for the moment in a local header file. 
 // This might change when an own HW for AskSin is defined
-#include "AskSin32Duino.h"
+//#include "AskSin32Duino.h" not needed anymore
+#include "hal_conf_extra.h"
 
 // Derive ID and Serial from the device UUID
 //#define USE_HW_SERIAL
