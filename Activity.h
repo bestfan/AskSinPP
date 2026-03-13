@@ -105,7 +105,7 @@ public:
 
   static void waitSerial () {
 //      DPRINT(F("Go sleep - ")); DHEXLN((uint16_t)sysclock.next());
-      Serial.flush();
+      DFLUSH;
       while (!(UCSR0A & (1 << UDRE0))) {  // Wait for empty transmit buffer
         UCSR0A |= 1 << TXC0;  // mark transmission not complete
       }
@@ -234,7 +234,7 @@ public:
 
   static void waitSerial() {
     //DPRINT(F("Go sleep - ")); DHEXLN((uint16_t)sysclock.next());
-    DSERIAL.flush(); // waits for the transmission of outgoing serial data to complete
+    DFLUSH; // waits for the transmission of outgoing serial data to complete
    }
 
   template <class Hal>
@@ -288,7 +288,7 @@ class Sleep {
 public:
   static void waitSerial() {
     //TODO: Serial.flush leads crashes when entering EM2
-    //Serial.flush();
+    //DFLUSH;
   }
 
   template <class Hal>
@@ -442,7 +442,7 @@ public:
     return ticks;
   }
 
-  static void waitSerial() {Serial.flush();};
+  static void waitSerial() {DFLUSH;};
 
   template <class Hal>
   static void powerSave (Hal& hal) {
