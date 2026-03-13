@@ -19,6 +19,11 @@
   #include "pico/util/datetime.h"
 #endif
 
+#ifdef ARDUINO_ARCH_STM32
+  #include <STM32RTC.h>
+//  #include <time.h>
+#endif
+
 #ifdef ARDUINO_ARCH_EFM32
   // minimum timeout for a timer
   #define TIMER_MIN_TIMEOUT_MS 10
@@ -329,6 +334,8 @@ public:
 #elif defined(ARDUINO_ARCH_STM32F1) && defined(_RTCLOCK_H_)
     rt = RTClock(RTCSEL_LSE);
     rt.attachSecondsInterrupt(rtccallback);
+#elif defined(ARDUINO_ARCH_STM32) 
+// copy from stm32_low_power example
 #elif defined(ARDUINO_ARCH_RP2040)
     datetime_t alarmT;
     rtc_init();
