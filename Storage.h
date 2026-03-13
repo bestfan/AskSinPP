@@ -11,6 +11,9 @@
 #ifdef ARDUINO_ARCH_STM32F1
   #include "flash_stm32.h"
 #endif
+#if defined ARDUINO_ARCH_STM32
+  #include "FlashStorage_STM32.h" 
+#endif
 
 #if defined ARDUINO_ARCH_ESP32 || defined ARDUINO_ARCH_RP2040
   #include "AlarmClock.h"
@@ -40,7 +43,7 @@ class InternalEprom {
     #error Unknown CPU type
   #endif
 
-  // we mirror 1 Flash Page into RAM
+// we mirror 1 Flash Page into RAM
   uint8_t data[FlashPageSize];
 
   void eeprom_read_block(void* buf,const void* addr,size_t size) {
@@ -55,11 +58,34 @@ class InternalEprom {
       memcpy(&data[offset],buf,size);
     }
   }
-#elif defined ARDUINO_ARCH_STM32 && defined STM32L1xx
-  // this works for STM32L151C8, todo: check for other variants with more flash
-  #define EEADDR_EEPROM_START  0x08080000
-  #define EEINFO_EEPROM_SIZE   4096
-  #define E2END EEINFO_EEPROM_SIZE
+#elif defined ARDUINO_ARCH_STM32 && !defined EEPROM_RETRAM_MODE
+  #if defined FLASH_PAGE_SIZE && defined FLASH_BASE_ADDRESS
+    #define FlashPageSize FLASH_PAGE_SIZE
+    #define FlashStartAddress FLASH_BASE_ADDRESS
+    #define E2END (FLASH_BASE_ADDRESS-1)
+  #else
+    #error: Flash not defined.
+  #endif
+// we mirror 1 Flash Page into RAM
+  uint8_t data[FlashPageSize];
+
+  void eeprom_read_block(void* buf,const void* addr,size_t size) {
+    uintptr_t offset = (uintptr_t)addr;
+    if( offset + size < sizeof(data) ) {
+      memcpy(buf,&data[offset],size);
+    }
+  }
+  void eeprom_write_block(const void* buf,void* addr,size_t size) {
+    uintptr_t offset = (uintptr_t)addr;
+    if( offset + size < sizeof(data) ) {
+      memcpy(&data[offset],buf,size);
+    }
+  }
+//#elif defined ARDUINO_ARCH_STM32 && defined STM32L1xx
+#elif defined ARDUINO_ARCH_STM32 && defined EEPROM_RETRAM_MODE
+  #define EEADDR_EEPROM_START  EEPROM_RETRAM_START_ADDRESS
+  #define EEINFO_EEPROM_SIZE   EEPROM_RETRAM_MODE_SIZE
+  #define E2END (EEPROM_RETRAM_MODE_SIZE - 1)
 
   void eeprom_read_block(void* buf, const void* addr, size_t size) {
     // check if address is within our eeprom
@@ -258,6 +284,97 @@ public:
       FLASH_ProgramHalfWord(FlashStartAddress+i+i,*(toread+i));
     }
     FLASH_Lock();
+#endif
+
+//#if defined ARDUINO_ARCH_STM32 && defined STM32F1xx
+#if defined ARDUINO_ARCH_STM32
+/*    // copy data from RAM to FLASH
+    HAL_FLASH_Unlock(); //unlock flash writing
+    FLASH_EraseInitTypeDef eraseInit;
+    uint32_t pageError = 0;
+
+//    eraseInit.TypeErase = FLASH_TYPEERASE_PAGES;
+    eraseInit.TypeErase = FLASH_TYPEERASE_SECTORS;
+//    eraseInit.PageAddress = FlashStartAddress;
+//    eraseInit.NbPages = 1;
+
+    if (HAL_FLASHEx_Erase(&eraseInit, &pageError) != HAL_OK) {
+        // Handle error (use pageError to see where it failed)
+    }
+    uint16_t* toread = (uint16_t*)data;
+    for (size_t i = 0; i < sizeof(data) / 2; ++i) {
+        // HAL_FLASH_Program(Typ, Adresse, Datenwert)
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, FlashStartAddress + (i * 2), *(toread + i)) != HAL_OK) {
+            // Optional: Fehlerbehandlung, z.B. mit HAL_FLASH_GetError()
+        }
+    }
+    HAL_FLASH_Lock();*/
+    FLASH_EraseInitTypeDef EraseInitStruct;
+    uint32_t offset = 0;
+    uint32_t address = FlashStartAddress;
+    uint32_t address_end = FlashStartAddress + FlashPageSize;
+    
+  #if defined (STM32F0xx) || defined (STM32F1xx) || defined (STM32F3xx) || defined (STM32G0xx) || \
+      defined (STM32G4xx) || defined (STM32L4xx) || defined (STM32L5xx) || defined (STM32WBxx)
+      
+    uint32_t pageError = 0;
+    uint64_t data = 0;
+
+    /* ERASING page */
+    EraseInitStruct.TypeErase = FLASH_TYPEERASE_PAGES;
+    
+  #if defined (STM32F1xx) || defined (STM32G4xx) || defined (STM32L4xx) || defined (STM32L5xx)
+    EraseInitStruct.Banks = FLASH_BANK_NUMBER;
+  #endif
+
+  #if defined (STM32G0xx) || defined (STM32G4xx) || defined (STM32L4xx) || defined (STM32L5xx) || defined (STM32WBxx)
+      
+    EraseInitStruct.Page = FLASH_PAGE_NUMBER;
+    
+  #else
+
+    EraseInitStruct.PageAddress = FLASH_BASE_ADDRESS;
+    
+  #endif
+  
+    EraseInitStruct.NbPages = 1;
+
+    if (HAL_FLASH_Unlock() == HAL_OK) 
+    {
+  #if defined (STM32G0xx) || defined (STM32G4xx) || defined (STM32L4xx) || defined (STM32L5xx) || defined (STM32WBxx)       
+      __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_ALL_ERRORS);
+  #else
+      __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_WRPERR | FLASH_FLAG_PGERR);
+  #endif
+  
+ /*     if (HAL_FLASHEx_Erase(&EraseInitStruct, &pageError) == HAL_OK) 
+      {
+        while (address <= address_end) 
+        {
+          data = *((uint64_t *)((uint8_t *)eeprom_buffer + offset));
+
+          if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_DOUBLEWORD, address, data) == HAL_OK) 
+          {
+            address += 8;
+            offset += 8;
+          } 
+          else 
+          {
+            address = address_end + 1;
+          }
+        }
+      }*/
+      
+      uint16_t* toread = (uint16_t*)data;
+      for (size_t i = 0; i < sizeof(data) / 2; ++i) {
+          // HAL_FLASH_Program(Typ, Adresse, Datenwert)
+          if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_HALFWORD, FlashStartAddress + (i * 2), *(toread + i)) != HAL_OK) {
+              // Optional: Fehlerbehandlung, z.B. mit HAL_FLASH_GetError()
+          }
+      }
+      HAL_FLASH_Lock();
+    }
+    #endif    
 #endif
   }
 
