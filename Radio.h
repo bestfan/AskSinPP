@@ -19,7 +19,7 @@
   typedef uint8_t BitOrder;
 #endif
 
-#if (defined ARDUINO_ARCH_EFM32) || ((defined ARDUINO_ARCH_RP2040) && (defined _HARDWARE_SPI_H))
+#if (defined ARDUINO_ARCH_EFM32) || (defined ARDUINO_ARCH_STM32) || ((defined ARDUINO_ARCH_RP2040) && (defined _HARDWARE_SPI_H))
   #define SPI_MODE0     0
 #endif
 
@@ -177,7 +177,8 @@ public:
 #endif
   LibSPI () {}
   void init () {
-#if defined ARDUINO_ARCH_STM32 && defined STM32L1xx
+//#if defined ARDUINO_ARCH_STM32 && defined STM32L1xx
+#if defined ARDUINO_ARCH_STM32
     SPI.setMOSI(PIN_SPI_MOSI);
     SPI.setMISO(PIN_SPI_MISO);
     SPI.setSCLK(PIN_SPI_SCK);
@@ -195,7 +196,8 @@ public:
   void shutdown () {
     SPI.end();
     pinMode(CS, INPUT);
-#if defined ARDUINO_ARCH_STM32 && defined STM32L1xx
+//#if defined ARDUINO_ARCH_STM32 && defined STM32L1xx
+#if defined ARDUINO_ARCH_STM32
     pinMode(PIN_SPI_MOSI, INPUT);
     pinMode(PIN_SPI_SCK, INPUT);
 #else
